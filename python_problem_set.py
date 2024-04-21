@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from numba import njit
 import itertools
+from math import factorial
 
 # this is the function definition cell
 def volume_of_cylinder(h,r):
@@ -203,7 +204,58 @@ def nth_prime_non_optimized(n : int) -> int:
         prime_list = sieve_Eratosthenes_nonoptimized(guess_N)
     return prime_list[n-1]
 
-def top_sum(side: int, top_num : int, total_dice_num : int, target : int) -> int:
-    # how many ways can 10 dice sum to n
+def count_occurence(dice_combo):
+    # count the occurence of each entry in the configuration
+    occurence = {}
+    for dice_value in dice_combo:
+        if dice_value in occurence:
+            occurence[dice_value] = occurence[dice_value] + 1
+        else:
+            occurence[dice_value] = 1
+    return occurence
+
+def count_combination(dice_side, total_dice_num, dice_combo):
+    # check if the combo list is valid
+    for dice in dice_combo:
+        if dice > dice_side:
+            raise Exception('Dice input larger than maximum side')
+        elif dice < 0:
+            raise Exception('Dice input lower than minumum side')
+
+    # use multinomial coefficient formula to calculate the combination
+    occurence = count_occurence(dice_combo)
+    denominator = 1
+    numerator = factorial(total_dice_num)
+
+    for key, value in occurence.items():
+        denominator = denominator * factorial(value)
+
+    return numerator // denominator
+
+# main recursion function
+def top_sum(dice_side: int, top_num : int, total_dice_num : int, target_sum : int, dice_combo : list) -> int:
+    # discard the invalid configuration
+    if len(dice_combo) == top_num and sum(dice_combo) != target_sum:
+        return 0
+    # count the number of combinations from configuration
+    if len(dice_combo) == total_dice_num:
+        return count_combination(dice_side, total_dice_num, dice_combo)
     
-    return 0
+    if len(dice_combo) == 0:
+        next_dice = dice_side
+    else:
+        next_dice = dice_combo[-1]
+
+    # use dp to do recursion for all possibilities
+    # essentially we are trying all possibilities by adding one dice at a time
+    # suppose the first time we are adding the first element, then inside the next recursion function,
+    # we are adding the second allowed item specified by the next_dice range so that we are
+    # not exceeding the maximum
+    # then our base case will use count_combination() to calcuate the number of combinations
+    # of the successful combinations
+    out = 0
+    for dice in range(1, next_dice + 1):
+        dice_combo.append(dice)
+        out = out + top_sum(dice_side, top_num, total_dice_num, target_sum, dice_combo)
+        dice_combo.pop()
+    return out
