@@ -40,17 +40,17 @@ def dynamics_solve(f, D = 1, t_0 = 0.0, s_0 = 1, h = 0.1, N = 100, method = "Eul
     
     if method == 'RK2':
         for n in range(N):
-            k1 = 
-            k2 = 
-            S[n + 1] = 
+            k1 = h*f(T[n], S[n])
+            k2 = h*f(T[n]+0.5*h, S[n]+0.5*k1)
+            S[n + 1] = S[n] + k2
     
     if method == 'RK4':
         for n in range(N):
-            k1 = 
-            k2 = 
-            k3 = 
-            k4 = 
-            S[n + 1] = 
+            k1 = h*f(T[n], S[n])
+            k2 = h*f(T[n], S[n]+0.5*k1)
+            k3 = h*f(T[n], S[n]+0.5*k2)
+            k4 = h*f(T[n], S[n]+k3)
+            S[n + 1] = S[n] + 1/6*k1 + 1/3*k2 + 1/3*k3 + 1/6*k4
             
     return T, S
 
@@ -80,42 +80,61 @@ def hamiltonian_solve(d_qH, d_pH, d = 1, t_0 = 0.0, q_0 = 0.0, p_0 = 1.0, h = 0.
         Q: Numpy array of positions at the times given in T
         P: Numpy array of momenta at the times given in T
     """
-    T = 
+    T = np.array([t_0 + n * h for n in range(N + 1)])
     
     if d == 1:
-        P = 
-        Q = 
+        P = np.zeros(N + 1)
+        Q = np.zeros(N + 1)
         
-        Q[0] = 
-        P[0] =
+        Q[0] = q_0
+        P[0] = p_0
     
     if d > 1:
+        P = np.zeros((N + 1, d))
+        Q = np.zeros((N + 1, d))
+
+        Q[0] = q_0
+        P[0] = p_0
         
     
     if method == 'Euler':
         for n in range(N):
             Q[n + 1] = Q[n] + h * d_pH(Q[n], P[n])
-            P[n + 1] = 
+            P[n + 1] = P[n] - h * d_qH(Q[n], P[n])
     
     if method == 'RK2':
         for n in range(N):
             k1_Q = h * d_pH(Q[n], P[n])
-            k1_P = h * (- d_qH(Q[n], P[n]))
+            k1_P = - h * d_qH(Q[n], P[n])
             
-            k2_Q = 
-            k2_P = 
+            k2_Q = h * d_pH(Q[n] + 0.5 * k1_Q, P[n] + 0.5 * k1_P)
+            k2_P = - h * d_qH(Q[n] + 0.5 * k1_Q, P[n] + 0.5 * k1_P)
             
-            Q[n + 1] = 
-            P[n + 1] = 
+            Q[n + 1] = Q[n] + k2_Q
+            P[n + 1] = P[n] + k2_P
         
     if method == 'RK4':
         for n in range(N): 
-            
+            k1_Q = h * d_pH(Q[n], P[n])
+            k1_P = h * (-d_qH(Q[n], P[n]))
+            k2_Q = h * d_pH(Q[n] + 0.5 * k1_Q, P[n] + 0.5 * k1_P)
+            k2_P = h * (-d_qH(Q[n] + 0.5 * k1_Q, P[n] + 0.5 * k1_P))
+            k3_Q = h * d_pH(Q[n] + 0.5 * k2_Q, P[n] + 0.5 * k2_P)
+            k3_P = h * (-d_qH(Q[n] + 0.5 * k2_Q, P[n] + 0.5 * k2_P))
+            k4_Q = h * d_pH(Q[n] + k3_Q, P[n] + k3_P)
+            k4_P = h * (-d_qH(Q[n] + k3_Q, P[n] + k3_P))
+            Q[n + 1] = Q[n] + (k1_Q + 2 * k2_Q + 2 * k3_Q + k4_Q) / 6
+            P[n + 1] = P[n] + (k1_P + 2 * k2_P + 2 * k3_P + k4_P) / 6
         
     if method == 'SE':
+        for n in range(N):
+            P[n + 1] = P[n] - h * d_qH(Q[n], P[n])
+            Q[n + 1] = Q[n] + h * d_pH(Q[n], P[n+1])
         
-    
     if method == "SV":
-        
+        for n in range(N):
+            P_half = P[n] - 0.5 * h * d_qH(Q[n] , P[n])
+            Q[n+1] = Q[n] + h * d_pH(Q[n], P_half)
+            P[n+1] = P_half - 0.5 * h * d_qH(Q[n+1], P_half)
         
     return T, Q, P
